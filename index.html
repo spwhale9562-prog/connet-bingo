@@ -400,6 +400,7 @@
   }
   .btn:active { transform: scale(0.98); }
   .btn-cancel { background: var(--bg); color: var(--ink-muted); border: 1px solid var(--border); }
+  .btn-reset { background: #FEE2E2; color: #B91C1C; border: 1px solid #FECACA; flex: 0.8; }
   .btn-confirm { background: var(--accent); color: white; }
   .btn-confirm:disabled { opacity: 0.4; cursor: not-allowed; }
 
@@ -533,6 +534,7 @@
 
     <div class="modal-btns">
       <button class="btn btn-cancel" onclick="closeModal()">취소</button>
+      <button class="btn btn-reset" id="resetBtn" onclick="resetCell()" style="display:none;">🗑 초기화</button>
       <button class="btn btn-confirm" id="confirmBtn" onclick="confirmCell()" disabled>완료로 표시하기</button>
     </div>
   </div>
@@ -668,6 +670,10 @@ function openModal(index) {
   document.getElementById('modalGuide').innerHTML = m.guide;
 
   renderPhotoGrid();
+  // 완료된 칸이면 초기화 버튼 표시
+  const resetBtn = document.getElementById('resetBtn');
+  resetBtn.style.display = state[index].done ? 'block' : 'none';
+
   document.getElementById('modalOverlay').classList.add('open');
   document.body.style.overflow = 'hidden';
 }
@@ -698,6 +704,18 @@ function renderPhotoGrid() {
 function removePhoto(idx) {
   pendingPhotos.splice(idx, 1);
   renderPhotoGrid();
+}
+
+function resetCell() {
+  if (currentCell === null) return;
+  if (!confirm('이 칸을 초기화할까요? 첨부한 사진도 모두 삭제돼요.')) return;
+  state[currentCell].done = false;
+  state[currentCell].photos = [];
+  closeModal();
+  saveState();
+  renderGrid();
+  updateProgress();
+  showToast('🗑 칸이 초기화됐어요!');
 }
 
 function closeModal() {
