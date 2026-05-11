@@ -844,13 +844,48 @@ function downloadSummary() {
   });
 }
 
+// 사진 압축 (저장 용량 절약)
+function compressPhoto(dataUrl) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      const MAX = 600;
+      let w = img.width, h = img.height;
+      if (w > MAX || h > MAX) {
+        if (w > h) { h = Math.round(h * MAX / w); w = MAX; }
+        else { w = Math.round(w * MAX / h); h = MAX; }
+      }
+      canvas.width = w;
+      canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      resolve(canvas.toDataURL('image/jpeg', 0.6));
+    };
+    img.onerror = () => resolve(dataUrl);
+    img.src = dataUrl;
+  });
+}
+
 // 로컬 스토리지 저장
-function saveState() {
+async function saveState() {
   try {
-    const toSave = state.map(s => ({ done: s.done, photos: s.photos }));
-    localStorage.setItem('connectBingo_state', JSON.stringify(toSave));
+    const toSave = await Promise.all(state.map(async s => {
+      const compressed = await Promise.all(s.photos.map(p => compressPhoto(p)));
+      return { done: s.done, photos: compressed };
+    }));
+    // 용량 초과 대비: 사진 용량이 크면 사진 제외하고 완료 여부만 저장
+    const json = JSON.stringify(toSave);
+    if (json.length > 4 * 1024 * 1024) {
+      const minimal = toSave.map(s => ({ done: s.done, photos: [] }));
+      localStorage.setItem('connectBingo_state', JSON.stringify(minimal));
+      console.warn('사진 용량이 너무 커서 완료 여부만 저장됐어요.');
+    } else {
+      localStorage.setItem('connectBingo_state', json);
+    }
+    // 압축된 사진으로 state 업데이트
+    toSave.forEach((s, i) => { if (s.photos.length) state[i].photos = s.photos; });
   } catch(e) {
-    console.warn('저장 실패 (용량 초과일 수 있어요):', e);
+    console.warn('저장 실패:', e);
   }
 }
 
