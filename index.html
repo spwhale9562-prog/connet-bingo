@@ -516,7 +516,7 @@
   </div>
 
   <div class="download-section">
-    <button class="btn-download" onclick="downloadPDF()">📄 PDF로 저장하기</button>
+    <button class="btn-download" onclick="downloadSummary()">📥 완료 현황 저장하기</button>
   </div>
 
 </div>
@@ -786,185 +786,129 @@ function showToast(msg) {
   setTimeout(() => toast.classList.remove('show'), 3000);
 }
 
-function downloadPDF() {
-  // jsPDF 동적 로드
-  if (typeof window.jspdf === 'undefined') {
-    const script = document.createElement('script');
-    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
-    script.onload = () => generatePDF();
-    document.head.appendChild(script);
-  } else {
-    generatePDF();
-  }
-}
-
-async function generatePDF() {
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-  const PW = 210, PH = 297, PAD = 15;
+function downloadSummary() {
   const doneCount = state.filter(s => s.done).length;
-  const lineCount = LINES.filter(l => l.cells.every(c => state[c].done)).length;
-  const dateStr = new Date().toLocaleDateString('ko-KR');
+  const lines = LINES.filter(l => l.cells.every(c => state[c].done));
+  const SCALE = 2; // 고해상도
+  const W = 960, PAD = 20, TOP = 140, CELL = 290, COLS = 3;
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+  canvas.width = W * SCALE;
+  canvas.height = (TOP + COLS * (CELL + PAD) + PAD + 60) * SCALE;
+  ctx.scale(SCALE, SCALE);
 
-  // ── 1페이지: 빙고판 전체 현황 ──
+  // 배경
+  ctx.fillStyle = '#F7F5F0';
+  ctx.fillRect(0, 0, W, canvas.height / SCALE);
+
   // 헤더
-  doc.setFillColor(28, 23, 20);
-  doc.rect(0, 0, PW, 40, 'F');
-  doc.setTextColor(255, 255, 255);
-  doc.setFontSize(20);
-  doc.setFont('helvetica', 'bold');
-  doc.text('Connect Bingo', PAD, 18);
-  doc.setFontSize(10);
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(168, 162, 158);
-  doc.text(`${doneCount}/9 완료  ·  빙고 ${lineCount}줄  ·  ${dateStr} 기준`, PAD, 28);
+  ctx.fillStyle = '#1A1714';
+  ctx.fillRect(0, 0, W, TOP);
+  ctx.fillStyle = '#FFFFFF';
+  ctx.font = 'bold 28px sans-serif';
+  ctx.fillText('커넥트 빙고 — 완료 현황', PAD, 52);
+  ctx.fillStyle = '#9A9490';
+  ctx.font = '16px sans-serif';
+  ctx.fillText(`${doneCount}/9 완료 · 빙고 ${lines.length}줄`, PAD, 84);
+  ctx.fillText(new Date().toLocaleDateString('ko-KR') + ' 기준', PAD, 108);
 
-  // 빙고판 그리드
-  const CELL_W = (PW - PAD * 2) / 3;
-  const CELL_H = 50;
-  const GRID_TOP = 50;
+  const drawPromises = missions.map((m, i) => {
+    return new Promise((resolve) => {
+      const col = i % 3, row = Math.floor(i / 3);
+      const x = PAD + col * (CELL + PAD);
+      const y = TOP + PAD + row * (CELL + PAD);
+      const isDone = state[i].done;
+      const photos = state[i].photos;
 
-  for (let i = 0; i < 9; i++) {
-    const col = i % 3, row = Math.floor(i / 3);
-    const x = PAD + col * CELL_W;
-    const y = GRID_TOP + row * CELL_H;
-    const isDone = state[i].done;
+      // 셀 배경
+      ctx.fillStyle = isDone ? '#EAF5EF' : '#FFFFFF';
+      ctx.beginPath();
+      ctx.roundRect(x, y, CELL, CELL, 10);
+      ctx.fill();
+      ctx.strokeStyle = isDone ? '#2D6A4F' : '#E2DDD8';
+      ctx.lineWidth = isDone ? 2 : 1;
+      ctx.stroke();
 
-    // 배경
-    doc.setFillColor(isDone ? 234 : 255, isDone ? 245 : 255, isDone ? 239 : 255);
-    doc.rect(x, y, CELL_W, CELL_H, 'F');
+      // 완료 배지
+      if (isDone) {
+        ctx.fillStyle = '#2D6A4F';
+        ctx.beginPath();
+        ctx.arc(x + CELL - 18, y + 18, 12, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = 'bold 13px sans-serif';
+        ctx.fillText('✓', x + CELL - 23, y + 23);
+      }
 
-    // 테두리
-    doc.setDrawColor(isDone ? 45 : 226, isDone ? 106 : 221, isDone ? 79 : 216);
-    doc.setLineWidth(isDone ? 0.5 : 0.3);
-    doc.rect(x, y, CELL_W, CELL_H);
+      // 별점
+      ctx.fillStyle = '#D97706';
+      ctx.font = '13px sans-serif';
+      ctx.fillText(m.stars, x + 12, y + 26);
 
-    // 완료 배지
-    if (isDone) {
-      doc.setFillColor(45, 106, 79);
-      doc.circle(x + CELL_W - 6, y + 6, 4, 'F');
-      doc.setTextColor(255, 255, 255);
-      doc.setFontSize(7);
-      doc.text('✓', x + CELL_W - 7.5, y + 7.5);
-    }
+      // 미션명
+      ctx.fillStyle = '#1A1714';
+      ctx.font = 'bold 15px sans-serif';
+      ctx.fillText(m.name, x + 12, y + 48);
 
-    // 별점
-    doc.setTextColor(196, 122, 42);
-    doc.setFontSize(8);
-    doc.text(missions[i].stars, x + 3, y + 10);
+      // 인증방법
+      ctx.fillStyle = '#8C8480';
+      ctx.font = '12px sans-serif';
+      ctx.fillText(`(${m.proof})`, x + 12, y + 66);
 
-    // 미션명
-    doc.setTextColor(28, 23, 20);
-    doc.setFontSize(9);
-    doc.setFont('helvetica', 'bold');
-    const nameLines = doc.splitTextToSize(missions[i].name, CELL_W - 6);
-    doc.text(nameLines, x + 3, y + 20);
+      // 사진 영역
+      if (isDone && photos.length > 0) {
+        const photoAreaY = y + 76;
+        const photoAreaH = CELL - 84;
+        const photoCount = photos.length;
 
-    // 인증방법
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(140, 132, 128);
-    doc.setFontSize(7.5);
-    doc.text(`(${missions[i].proof})`, x + 3, y + 32);
+        // 사진 개수에 따라 그리드 레이아웃
+        const cols = photoCount === 1 ? 1 : photoCount <= 4 ? 2 : 3;
+        const rows = Math.ceil(photoCount / cols);
+        const gap = 4;
+        const photoW = (CELL - 24 - gap * (cols - 1)) / cols;
+        const photoH = (photoAreaH - gap * (rows - 1)) / rows;
 
-    // 대표 사진
-    if (isDone && state[i].photos[0]) {
-      try {
-        doc.addImage(state[i].photos[0], 'JPEG', x + 3, y + 36, CELL_W - 6, 11);
-      } catch(e) {}
-    }
-  }
+        const loadPhoto = (idx) => new Promise((res) => {
+          if (idx >= photoCount) return res();
+          const img = new Image();
+          img.onload = () => {
+            const pc = idx % cols, pr = Math.floor(idx / cols);
+            const px = x + 12 + pc * (photoW + gap);
+            const py = photoAreaY + pr * (photoH + gap);
+            ctx.save();
+            ctx.beginPath();
+            ctx.roundRect(px, py, photoW, photoH, 4);
+            ctx.clip();
+            // 비율 유지하며 채우기
+            const scale = Math.max(photoW / img.width, photoH / img.height);
+            const sw = img.width * scale, sh = img.height * scale;
+            ctx.drawImage(img, px - (sw - photoW) / 2, py - (sh - photoH) / 2, sw, sh);
+            ctx.restore();
+            res();
+          };
+          img.onerror = res;
+          img.src = photos[idx];
+        });
 
-  // 빙고 현황 요약
-  const summaryY = GRID_TOP + 3 * CELL_H + 10;
-  doc.setFillColor(247, 245, 240);
-  doc.rect(PAD, summaryY, PW - PAD * 2, 28, 'F');
-  doc.setDrawColor(226, 221, 216);
-  doc.setLineWidth(0.3);
-  doc.rect(PAD, summaryY, PW - PAD * 2, 28);
-  doc.setTextColor(28, 23, 20);
-  doc.setFontSize(11);
-  doc.setFont('helvetica', 'bold');
-  doc.text('빙고 현황', PAD + 5, summaryY + 9);
-  doc.setFontSize(8.5);
-  doc.setFont('helvetica', 'normal');
-  let lineY = summaryY + 17;
-  LINES.forEach(l => {
-    const complete = l.cells.every(c => state[c].done);
-    doc.setTextColor(complete ? 45 : 140, complete ? 106 : 132, complete ? 79 : 128);
-    doc.text(`${complete ? '✓' : '○'}  ${l.label}`, PAD + 5 + (LINES.indexOf(l) >= 4 ? 85 : 0), lineY + (LINES.indexOf(l) % 4) * 6.5);
+        // 순서대로 사진 그리기
+        const drawAll = async () => {
+          for (let p = 0; p < photoCount; p++) await loadPhoto(p);
+          resolve();
+        };
+        drawAll();
+      } else {
+        resolve();
+      }
+    });
   });
 
-  // ── 2페이지~: 완료된 칸별 상세 ──
-  const doneCells = state.map((s, i) => ({ ...s, idx: i })).filter(s => s.done);
-
-  for (const cell of doneCells) {
-    doc.addPage();
-    const m = missions[cell.idx];
-
-    // 헤더
-    doc.setFillColor(28, 23, 20);
-    doc.rect(0, 0, PW, 30, 'F');
-    doc.setTextColor(168, 162, 158);
-    doc.setFontSize(8);
-    doc.setFont('helvetica', 'normal');
-    doc.text(`${m.stars}  난이도`, PAD, 12);
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(16);
-    doc.setFont('helvetica', 'bold');
-    doc.text(m.name, PAD, 23);
-
-    // 인증 방법
-    doc.setFillColor(234, 245, 239);
-    doc.rect(PAD, 35, PW - PAD * 2, 12, 'F');
-    doc.setTextColor(45, 106, 79);
-    doc.setFontSize(9);
-    doc.setFont('helvetica', 'normal');
-    doc.text(`인증 방법: ${m.proof}`, PAD + 4, 43);
-
-    // 사진 개수 안내
-    doc.setTextColor(140, 132, 128);
-    doc.setFontSize(9);
-    doc.text(`첨부된 사진: ${cell.photos.length}장`, PAD, 57);
-
-    // 사진 배치
-    const photos = cell.photos;
-    if (photos.length === 1) {
-      // 1장 — 크게
-      try {
-        doc.addImage(photos[0], 'JPEG', PAD, 62, PW - PAD * 2, 100);
-      } catch(e) {}
-    } else if (photos.length === 2) {
-      // 2장 — 나란히
-      const w = (PW - PAD * 2 - 5) / 2;
-      for (let p = 0; p < 2; p++) {
-        try {
-          doc.addImage(photos[p], 'JPEG', PAD + p * (w + 5), 62, w, 80);
-        } catch(e) {}
-      }
-    } else {
-      // 3장 이상 — 그리드
-      const cols = photos.length <= 3 ? 3 : 2;
-      const rows = Math.ceil(photos.length / cols);
-      const w = (PW - PAD * 2 - (cols - 1) * 4) / cols;
-      const h = Math.min(70, (PH - 75 - rows * 4) / rows);
-      photos.forEach((photo, p) => {
-        const pc = p % cols, pr = Math.floor(p / cols);
-        try {
-          doc.addImage(photo, 'JPEG', PAD + pc * (w + 4), 62 + pr * (h + 4), w, h);
-          // 사진 번호
-          doc.setFillColor(28, 23, 20, 0.6);
-          doc.setTextColor(255,255,255);
-          doc.setFontSize(7);
-          doc.text(`${p+1}`, PAD + pc * (w + 4) + 2, 62 + pr * (h + 4) + 7);
-        } catch(e) {}
-      });
-    }
-  }
-
-  // 저장
-  const fileName = `커넥트빙고_${new Date().toLocaleDateString('ko-KR').replace(/\./g, '').replace(/ /g, '')}.pdf`;
-  doc.save(fileName);
-  showToast('📄 PDF가 저장됐어요!');
+  Promise.all(drawPromises).then(() => {
+    const link = document.createElement('a');
+    link.download = `커넥트빙고_${new Date().toLocaleDateString('ko-KR').replace(/\./g, '').replace(/ /g, '')}.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+    showToast('📥 완료 현황이 저장됐어요!');
+  });
 }
 
 // 사진 압축 (저장 용량 절약)
