@@ -1,0 +1,882 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>커넥트 빙고 — 멘토 프로그램</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #F7F5F0;
+    --ink: #1A1714;
+    --ink-soft: #4A4540;
+    --ink-muted: #8C8480;
+    --ink-light: #C0BAB4;
+    --white: #FFFFFF;
+    --border: #E2DDD8;
+    --accent: #2D6A4F;
+    --accent-light: #C8EDD8;
+    --amber: #C47A2A;
+    --amber-light: #FBF0DC;
+    --done-bg: #EAF5EF;
+    --done-border: #2D6A4F;
+    --radius: 12px;
+    --shadow: 0 2px 16px rgba(26,23,20,0.08);
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'Noto Sans KR', sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    min-height: 100vh;
+    padding-bottom: 4rem;
+  }
+
+  /* HEADER */
+  header {
+    background: var(--white);
+    color: var(--ink);
+    padding: 2rem 2rem 2rem;
+    position: relative;
+    overflow: hidden;
+    border-bottom: 1px solid var(--border);
+  }
+  header::after {
+    content: '';
+  }
+  .header-inner { max-width: 640px; margin: 0 auto; }
+  .header-tag {
+    font-size: 11px;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    color: var(--accent);
+    font-weight: 700;
+    margin-bottom: 0.75rem;
+  }
+  .header-title {
+    font-family: 'Noto Sans KR', sans-serif;
+    font-size: clamp(28px, 6vw, 44px);
+    font-weight: 700;
+    line-height: 1.15;
+    margin-bottom: 0.75rem;
+    color: var(--ink);
+  }
+  .header-desc { font-size: 14px; color: var(--ink-muted); line-height: 1.75; }
+
+  /* PROGRESS */
+  .progress-bar-wrap {
+    background: var(--border);
+    border-radius: 100px;
+    height: 6px;
+    margin-top: 1.5rem;
+    overflow: hidden;
+  }
+  .progress-bar {
+    height: 100%;
+    background: var(--accent-light);
+    border-radius: 100px;
+    transition: width 0.5s cubic-bezier(0.4,0,0.2,1);
+    width: 0%;
+  }
+  .progress-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: var(--ink-muted);
+    margin-top: 6px;
+  }
+  .progress-label span { color: var(--accent); font-weight: 700; }
+
+  /* MAIN */
+  .main { max-width: 640px; margin: 0 auto; padding: 2rem 1.5rem 0; }
+
+  /* GUIDE */
+  .guide {
+    background: var(--amber-light);
+    border: 1px solid #E8D5B0;
+    border-left: 4px solid var(--amber);
+    border-radius: var(--radius);
+    padding: 1rem 1.1rem;
+    font-size: 13.5px;
+    color: #7A4E10;
+    line-height: 1.7;
+    margin-bottom: 1.5rem;
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+  }
+  .guide-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+
+  /* STATUS BAR */
+  .status-bar {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 1.25rem;
+    flex-wrap: wrap;
+  }
+  .status-chip {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 100px;
+    padding: 5px 12px;
+    font-size: 13px;
+    color: var(--ink-soft);
+  }
+  .status-chip .dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .dot-done { background: var(--accent); }
+  .dot-pending { background: var(--border); }
+
+  /* BINGO GRID */
+  .bingo-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 1.5rem;
+  }
+
+  .bingo-cell {
+    background: var(--white);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1rem;
+    cursor: pointer;
+    transition: border-color 0.2s, box-shadow 0.2s, transform 0.15s;
+    position: relative;
+    overflow: hidden;
+    min-height: 130px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    user-select: none;
+  }
+  .bingo-cell:hover {
+    border-color: var(--ink-muted);
+    box-shadow: var(--shadow);
+    transform: translateY(-2px);
+  }
+  .bingo-cell:active { transform: translateY(0); }
+
+  .bingo-cell.done {
+    border-color: var(--done-border);
+    background: var(--done-bg);
+  }
+  .bingo-cell.done .cell-photo-preview {
+    display: block;
+  }
+
+  .cell-stars { font-size: 11px; letter-spacing: 1px; color: var(--amber); }
+  .cell-name { font-size: 13.5px; font-weight: 700; line-height: 1.4; color: var(--ink); }
+  .cell-proof { font-size: 11.5px; color: var(--ink-muted); }
+
+  .cell-photo-preview {
+    display: none;
+    width: 100%;
+    aspect-ratio: 4/3;
+    object-fit: cover;
+    border-radius: 6px;
+    margin-top: 4px;
+  }
+
+  .cell-done-badge {
+    position: absolute;
+    top: 8px; right: 8px;
+    width: 22px; height: 22px;
+    background: var(--accent);
+    border-radius: 50%;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    color: white;
+    font-weight: 700;
+  }
+  .bingo-cell.done .cell-done-badge { display: flex; }
+
+  .cell-add-hint {
+    margin-top: auto;
+    font-size: 11px;
+    color: var(--ink-light);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .bingo-cell.done .cell-add-hint { display: none; }
+
+  /* MODAL */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(26,23,20,0.6);
+    z-index: 200;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+    backdrop-filter: blur(4px);
+    animation: fadeIn 0.2s ease;
+  }
+  .modal-overlay.open { display: flex; }
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  .modal {
+    background: var(--white);
+    border-radius: 16px;
+    padding: 1.75rem;
+    width: 100%;
+    max-width: 400px;
+    box-shadow: 0 24px 64px rgba(26,23,20,0.2);
+    animation: slideUp 0.25s cubic-bezier(0.4,0,0.2,1);
+  }
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .modal-tag { font-size: 11px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--ink-muted); margin-bottom: 6px; }
+  .modal-title { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+  .modal-proof { font-size: 13px; color: var(--ink-muted); margin-bottom: 1.25rem; }
+
+  .modal-guide {
+    background: var(--bg);
+    border-radius: 8px;
+    padding: 0.85rem 1rem;
+    font-size: 13px;
+    color: var(--ink-soft);
+    line-height: 1.7;
+    margin-bottom: 1.25rem;
+    border: 1px solid var(--border);
+  }
+  .modal-guide strong { color: var(--ink); }
+
+  .upload-zone {
+    border: 2px dashed var(--border);
+    border-radius: 10px;
+    padding: 1.5rem 1rem;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+    margin-bottom: 1.25rem;
+    position: relative;
+    overflow: hidden;
+  }
+  .upload-zone:hover { border-color: var(--accent); background: var(--done-bg); }
+  .upload-zone input[type="file"] {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+    width: 100%;
+    height: 100%;
+  }
+  .upload-zone-icon { font-size: 28px; margin-bottom: 8px; }
+  .upload-zone-text { font-size: 14px; font-weight: 700; color: var(--ink); margin-bottom: 4px; }
+  .upload-zone-sub { font-size: 12px; color: var(--ink-muted); }
+
+  .upload-preview {
+    display: none;
+    width: 100%;
+    border-radius: 10px;
+    margin-bottom: 1.25rem;
+    position: relative;
+  }
+  .upload-preview img {
+    width: 100%;
+    border-radius: 10px;
+    max-height: 200px;
+    object-fit: cover;
+    display: block;
+  }
+  .upload-preview-change {
+    position: absolute;
+    bottom: 8px; right: 8px;
+    background: rgba(26,23,20,0.7);
+    color: white;
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 100px;
+    cursor: pointer;
+    border: none;
+    font-family: inherit;
+  }
+  .upload-preview-change input {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+    width: 100%;
+    height: 100%;
+  }
+
+  /* PHOTO GRID */
+  .photo-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin-bottom: 1rem;
+  }
+  .photo-item {
+    position: relative;
+    aspect-ratio: 1;
+    border-radius: 8px;
+    overflow: hidden;
+    background: var(--bg);
+  }
+  .photo-item img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .photo-item-del {
+    position: absolute;
+    top: 4px; right: 4px;
+    width: 20px; height: 20px;
+    background: rgba(26,23,20,0.7);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    font-size: 11px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    font-family: inherit;
+  }
+  .photo-add-btn {
+    aspect-ratio: 1;
+    border: 2px dashed var(--border);
+    border-radius: 8px;
+    background: var(--bg);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    cursor: pointer;
+    font-size: 20px;
+    color: var(--ink-muted);
+    transition: border-color 0.2s, background 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+  .photo-add-btn:hover { border-color: var(--accent); background: var(--done-bg); }
+  .photo-add-btn input {
+    position: absolute; inset: 0;
+    opacity: 0; cursor: pointer;
+    width: 100%; height: 100%;
+  }
+  .photo-add-btn span { font-size: 11px; color: var(--ink-muted); }
+  .photo-count { font-size: 12px; color: var(--ink-muted); margin-bottom: 0.75rem; }
+
+  .modal-btns {
+    display: flex;
+    gap: 8px;
+  }
+  .btn {
+    flex: 1;
+    padding: 0.75rem;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+    border: none;
+    transition: opacity 0.2s, transform 0.1s;
+  }
+  .btn:active { transform: scale(0.98); }
+  .btn-cancel { background: var(--bg); color: var(--ink-muted); border: 1px solid var(--border); }
+  .btn-confirm { background: var(--accent); color: white; }
+  .btn-confirm:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* BINGO COMPLETE TOAST */
+  .toast {
+    position: fixed;
+    bottom: 2rem;
+    left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    background: var(--ink);
+    color: white;
+    padding: 0.85rem 1.5rem;
+    border-radius: 100px;
+    font-size: 14px;
+    font-weight: 700;
+    z-index: 300;
+    transition: transform 0.4s cubic-bezier(0.4,0,0.2,1);
+    white-space: nowrap;
+    box-shadow: 0 8px 32px rgba(26,23,20,0.25);
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+  /* BINGO LINES */
+  .bingo-lines {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.1rem 1.25rem;
+    margin-bottom: 1.5rem;
+  }
+  .bingo-lines-title { font-size: 13px; font-weight: 700; margin-bottom: 0.6rem; color: var(--ink); }
+  .line-list { display: flex; flex-direction: column; gap: 6px; }
+  .line-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12.5px;
+    color: var(--ink-muted);
+  }
+  .line-item.complete { color: var(--accent); font-weight: 700; }
+  .line-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--border);
+    flex-shrink: 0;
+  }
+  .line-item.complete .line-dot { background: var(--accent); }
+
+  /* DOWNLOAD BTN */
+  .download-section {
+    text-align: center;
+    padding: 1rem 0 2rem;
+  }
+  .btn-download {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--ink);
+    color: white;
+    border: none;
+    border-radius: 100px;
+    padding: 0.75rem 1.75rem;
+    font-size: 14px;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+    transition: opacity 0.2s;
+  }
+  .btn-download:hover { opacity: 0.85; }
+
+  @media (max-width: 480px) {
+    header { padding: 2rem 1.5rem 1.75rem; }
+    .bingo-cell { min-height: 110px; padding: 0.85rem; }
+    .cell-name { font-size: 12.5px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="header-tag">🎯 멘토 프로그램 · 커넥트 빙고</div>
+    <h1 class="header-title">커넥트 빙고</h1>
+    <p class="header-desc">미션을 완료하면 칸을 클릭해서 인증사진을 올려주세요.<br>3줄 또는 9칸 완성 시 포상이 지급돼요!</p>
+    <div class="progress-bar-wrap">
+      <div class="progress-bar" id="progressBar"></div>
+    </div>
+    <div class="progress-label">
+      <span id="progressText">0 / 9 완료</span>
+      <span id="bingoCount">빙고 0줄</span>
+    </div>
+  </div>
+</header>
+
+<div class="main">
+
+  <div class="guide">
+    <span class="guide-icon">💡</span>
+    <span>각 칸을 <strong>클릭</strong>하면 미션 안내와 함께 인증사진을 올릴 수 있어요. 사진을 첨부해야 해당 칸이 완료 처리돼요!</span>
+  </div>
+
+  <div class="status-bar">
+    <div class="status-chip"><span class="dot dot-done"></span>완료</div>
+    <div class="status-chip"><span class="dot dot-pending"></span>미완료</div>
+    <div class="status-chip">⭐ 숫자 = 난이도</div>
+  </div>
+
+  <div class="bingo-grid" id="bingoGrid"></div>
+
+  <div class="bingo-lines" id="bingoLines">
+    <div class="bingo-lines-title">빙고 현황</div>
+    <div class="line-list" id="lineList"></div>
+  </div>
+
+  <div class="download-section">
+    <button class="btn-download" onclick="downloadSummary()">📥 완료 현황 저장하기</button>
+  </div>
+
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeModalOnOverlay(event)">
+  <div class="modal" id="modal">
+    <div class="modal-tag" id="modalStars"></div>
+    <div class="modal-title" id="modalTitle"></div>
+    <div class="modal-proof" id="modalProof"></div>
+    <div class="modal-guide" id="modalGuide"></div>
+
+    <div class="photo-count" id="photoCount">사진 0장 첨부됨</div>
+    <div class="photo-grid" id="photoGrid"></div>
+
+    <div class="modal-btns">
+      <button class="btn btn-cancel" onclick="closeModal()">취소</button>
+      <button class="btn btn-confirm" id="confirmBtn" onclick="confirmCell()" disabled>완료로 표시하기</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const missions = [
+  {
+    stars: "⭐",
+    name: "멘토와 티타임",
+    proof: "인증사진",
+    guide: "아직 물어보지 못했던 것들, 궁금했던 것들을 멘토와 편하게 나눠봐요. G-Cafe, 클럽하우스 등 어디서든 OK! <strong>멘토와 함께 찍은 사진</strong>을 올려주세요.",
+  },
+  {
+    stars: "⭐⭐⭐",
+    name: "실/부장과 티타임",
+    proof: "인증사진",
+    guide: "소속 실장 또는 부장님과 티타임을 가져요. <strong>부담 갖지 말고 먼저 제안해봐요!</strong> 함께 찍은 사진을 올려주세요.",
+  },
+  {
+    stars: "⭐",
+    name: "명함 신청",
+    proof: "명함사진",
+    guide: "그룹웨어 게시판을 통해 명함을 신청해주세요. <strong>명함 앞면이 잘 보이도록</strong> 촬영해서 올려주세요.",
+  },
+  {
+    stars: "⭐⭐",
+    name: "인사팀과 식사",
+    proof: "인증사진",
+    guide: "인사팀 구성원과 함께 점심 식사를 해요. <strong>같이 찍은 식사 자리 사진</strong>을 올려주세요.",
+  },
+  {
+    stars: "⭐⭐⭐⭐⭐",
+    name: "타 부서와 스크린골프",
+    proof: "스코어카드",
+    guide: "다른 부서 동료와 스크린골프를 함께 즐겨요. <strong>게임 종료 후 스코어카드 화면</strong>을 캡처해서 올려주세요.",
+  },
+  {
+    stars: "⭐",
+    name: "팀즈 프로필 설정",
+    proof: "이미지 캡처",
+    guide: "Microsoft Teams 프로필 사진과 근무지, 담당 업무를 설정해주세요. <strong>설정 완료된 프로필 화면</strong>을 캡쳐해서 올려주세요.",
+  },
+  {
+    stars: "⭐⭐",
+    name: "타 부서와 식사",
+    proof: "인증사진",
+    guide: "다른 부서 동료와 함께 식사를 해요. 새로운 인연 만들기! <strong>같이 찍은 식사 자리 사진</strong>을 올려주세요.",
+  },
+  {
+    stars: "⭐⭐",
+    name: "사옥투어",
+    proof: "장소 3곳 인증사진",
+    guide: "골프존 사옥 내외 주요 장소 3곳을 직접 방문해요. <strong>각 장소에서 찍은 사진 3장</strong>을 올려주세요.",
+  },
+  {
+    stars: "⭐⭐⭐",
+    name: "멘토와 스크린골프",
+    proof: "스코어카드",
+    guide: "멘토와 함께 스크린골프를 즐겨요. 골프존의 핵심 서비스를 직접 체험해봐요! <strong>게임 종료 후 스코어카드 화면</strong>을 캡처해서 올려주세요.",
+  },
+];
+
+const LINES = [
+  { label: "가로 1줄 (1·2·3번)", cells: [0,1,2] },
+  { label: "가로 2줄 (4·5·6번)", cells: [3,4,5] },
+  { label: "가로 3줄 (7·8·9번)", cells: [6,7,8] },
+  { label: "세로 1줄 (1·4·7번)", cells: [0,3,6] },
+  { label: "세로 2줄 (2·5·8번)", cells: [1,4,7] },
+  { label: "세로 3줄 (3·6·9번)", cells: [2,5,8] },
+  { label: "대각선 (1·5·9번)", cells: [0,4,8] },
+  { label: "대각선 (3·5·7번)", cells: [2,4,6] },
+];
+
+let state = missions.map(() => ({ done: false, photos: [] }));
+let currentCell = null;
+let pendingPhotos = [];
+
+function renderGrid() {
+  const grid = document.getElementById('bingoGrid');
+  grid.innerHTML = missions.map((m, i) => {
+    const photos = state[i].photos;
+    const thumbs = photos.slice(0,1).map(p =>
+      `<img class="cell-photo-preview" src="${p}" alt="인증사진">`
+    ).join('');
+    const count = photos.length > 0 ? `<div style="font-size:11px;color:var(--accent);margin-top:2px;">📸 ${photos.length}장 첨부됨</div>` : '';
+    return `
+    <div class="bingo-cell ${state[i].done ? 'done' : ''}" onclick="openModal(${i})" id="cell-${i}">
+      <div class="cell-done-badge">✓</div>
+      <div class="cell-stars">${m.stars}</div>
+      <div class="cell-name">${m.name}</div>
+      <div class="cell-proof">(${m.proof})</div>
+      ${thumbs}${count}
+      <div class="cell-add-hint">📸 클릭해서 인증사진 올리기</div>
+    </div>`;
+  }).join('');
+}
+
+function renderLines() {
+  const done = state.map(s => s.done);
+  const completedLines = LINES.filter(l => l.cells.every(c => done[c]));
+  const list = document.getElementById('lineList');
+  list.innerHTML = LINES.map(l => {
+    const complete = l.cells.every(c => done[c]);
+    return `<div class="line-item ${complete ? 'complete' : ''}">
+      <span class="line-dot"></span>
+      ${complete ? '✅ ' : ''}${l.label}
+    </div>`;
+  }).join('');
+  return completedLines.length;
+}
+
+function updateProgress() {
+  const doneCount = state.filter(s => s.done).length;
+  const pct = (doneCount / 9) * 100;
+  document.getElementById('progressBar').style.width = pct + '%';
+  document.getElementById('progressText').textContent = `${doneCount} / 9 완료`;
+  const lineCount = renderLines();
+  document.getElementById('bingoCount').textContent = `빙고 ${lineCount}줄`;
+  return { doneCount, lineCount };
+}
+
+function openModal(index) {
+  currentCell = index;
+  pendingPhotos = [...state[index].photos];
+  const m = missions[index];
+
+  document.getElementById('modalStars').textContent = m.stars + ' 난이도';
+  document.getElementById('modalTitle').textContent = m.name;
+  document.getElementById('modalProof').textContent = `인증 방법: ${m.proof}`;
+  document.getElementById('modalGuide').innerHTML = m.guide;
+
+  renderPhotoGrid();
+  document.getElementById('modalOverlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function renderPhotoGrid() {
+  const grid = document.getElementById('photoGrid');
+  const count = document.getElementById('photoCount');
+  count.textContent = `사진 ${pendingPhotos.length}장 첨부됨`;
+
+  const items = pendingPhotos.map((src, idx) => `
+    <div class="photo-item">
+      <img src="${src}" alt="인증사진 ${idx+1}">
+      <button class="photo-item-del" onclick="removePhoto(${idx})">✕</button>
+    </div>
+  `).join('');
+
+  const addBtn = `
+    <label class="photo-add-btn">
+      <input type="file" accept="image/*" multiple onchange="handleFiles(event)">
+      <span style="font-size:22px;">+</span>
+      <span>사진 추가</span>
+    </label>`;
+
+  grid.innerHTML = items + addBtn;
+  document.getElementById('confirmBtn').disabled = pendingPhotos.length === 0;
+}
+
+function removePhoto(idx) {
+  pendingPhotos.splice(idx, 1);
+  renderPhotoGrid();
+}
+
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('open');
+  document.body.style.overflow = '';
+  currentCell = null;
+  pendingPhotos = [];
+}
+
+function closeModalOnOverlay(e) {
+  if (e.target === document.getElementById('modalOverlay')) closeModal();
+}
+
+function handleFiles(event) {
+  const files = Array.from(event.target.files);
+  if (!files.length) return;
+  let loaded = 0;
+  files.forEach(file => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      pendingPhotos.push(e.target.result);
+      loaded++;
+      if (loaded === files.length) renderPhotoGrid();
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function confirmCell() {
+  if (currentCell === null || pendingPhotos.length === 0) return;
+  const wasAlreadyDone = state[currentCell].done;
+  state[currentCell].done = true;
+  state[currentCell].photos = [...pendingPhotos];
+  const mName = missions[currentCell].name;
+  closeModal();
+  saveState();
+  renderGrid();
+  const { doneCount, lineCount } = updateProgress();
+
+  if (!wasAlreadyDone) {
+    if (doneCount === 9) {
+      showToast('🎉 9칸 완성! 4인 필드 라운드 포상 대상이에요!');
+    } else if (lineCount >= 3 && lineCount === countNewLine()) {
+      showToast(`🎊 빙고 ${lineCount}줄 완성! 커스텀 레슨 포상 대상이에요!`);
+    } else if (lineCount > 0) {
+      showToast(`✅ ${doneCount}칸 완료! 빙고 ${lineCount}줄 달성!`);
+    } else {
+      showToast(`✅ ${mName} 완료! (${doneCount}/9)`);
+    }
+  } else {
+    showToast(`📸 사진이 업데이트됐어요!`);
+  }
+}
+
+let prevLineCount = 0;
+function countNewLine() {
+  const done = state.map(s => s.done);
+  const count = LINES.filter(l => l.cells.every(c => done[c])).length;
+  const isNew = count > prevLineCount;
+  prevLineCount = count;
+  return isNew ? count : -1;
+}
+
+function showToast(msg) {
+  const toast = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 3000);
+}
+
+function downloadSummary() {
+  const doneCount = state.filter(s => s.done).length;
+  const lines = LINES.filter(l => l.cells.every(c => state[c].done));
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+  const W = 900, CELL = 280, PAD = 20, TOP = 140, COLS = 3;
+  canvas.width = W;
+  canvas.height = TOP + COLS * CELL + PAD * 2 + 80;
+  ctx.fillStyle = '#F7F5F0';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = '#1A1714';
+  ctx.fillRect(0, 0, canvas.width, TOP);
+  ctx.fillStyle = '#FFFFFF';
+  ctx.font = 'bold 32px sans-serif';
+  ctx.fillText('커넥트 빙고 — 완료 현황', 30, 55);
+  ctx.fillStyle = '#9A9490';
+  ctx.font = '18px sans-serif';
+  ctx.fillText(`${doneCount}/9 완료 · 빙고 ${lines.length}줄`, 30, 90);
+  ctx.fillText(new Date().toLocaleDateString('ko-KR') + ' 기준', 30, 118);
+
+  const drawPromises = missions.map((m, i) => {
+    return new Promise((resolve) => {
+      const col = i % 3, row = Math.floor(i / 3);
+      const x = PAD + col * (CELL + PAD);
+      const y = TOP + PAD + row * (CELL + PAD);
+      const isDone = state[i].done;
+      ctx.fillStyle = isDone ? '#EAF5EF' : '#FFFFFF';
+      ctx.beginPath();
+      ctx.roundRect(x, y, CELL, CELL, 10);
+      ctx.fill();
+      ctx.strokeStyle = isDone ? '#2D6A4F' : '#E2DDD8';
+      ctx.lineWidth = isDone ? 2 : 1;
+      ctx.stroke();
+      ctx.fillStyle = '#C47A2A';
+      ctx.font = '14px sans-serif';
+      ctx.fillText(m.stars, x + 12, y + 28);
+      ctx.fillStyle = '#1A1714';
+      ctx.font = 'bold 15px sans-serif';
+      const words = m.name;
+      ctx.fillText(words, x + 12, y + 52);
+      ctx.fillStyle = '#8C8480';
+      ctx.font = '12px sans-serif';
+      ctx.fillText(`(${m.proof})`, x + 12, y + 72);
+
+      if (isDone && state[i].photos[0]) {
+        const img = new Image();
+        img.onload = () => {
+          ctx.save();
+          ctx.beginPath();
+          ctx.roundRect(x + 10, y + 90, CELL - 20, CELL - 105, 6);
+          ctx.clip();
+          ctx.drawImage(img, x + 10, y + 90, CELL - 20, CELL - 105);
+          ctx.restore();
+          resolve();
+        };
+        img.onerror = resolve;
+        img.src = state[i].photos[0];
+      } else if (isDone) {
+        ctx.fillStyle = '#2D6A4F';
+        ctx.font = 'bold 14px sans-serif';
+        ctx.fillText('✓ 완료', x + 12, y + 110);
+        resolve();
+      } else {
+        resolve();
+      }
+    });
+  });
+
+  Promise.all(drawPromises).then(() => {
+    const link = document.createElement('a');
+    link.download = `커넥트빙고_${new Date().toLocaleDateString('ko-KR').replace(/\./g, '').replace(/ /g, '')}.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  });
+}
+
+// 로컬 스토리지 저장
+function saveState() {
+  try {
+    const toSave = state.map(s => ({ done: s.done, photos: s.photos }));
+    localStorage.setItem('connectBingo_state', JSON.stringify(toSave));
+  } catch(e) {
+    console.warn('저장 실패 (용량 초과일 수 있어요):', e);
+  }
+}
+
+// 로컬 스토리지 불러오기
+function loadState() {
+  try {
+    const saved = localStorage.getItem('connectBingo_state');
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      parsed.forEach((s, i) => {
+        if (state[i]) {
+          state[i].done = s.done || false;
+          state[i].photos = s.photos || [];
+        }
+      });
+    }
+  } catch(e) {
+    console.warn('불러오기 실패:', e);
+  }
+}
+
+// Init
+loadState();
+renderGrid();
+updateProgress();
+prevLineCount = LINES.filter(l => l.cells.every(c => state[c].done)).length;
+</script>
+</body>
+</html>
